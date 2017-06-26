@@ -10,18 +10,17 @@ package org.openbase.bco.dal.remote.service;
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Lesser Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Lesser Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/lgpl-3.0.html>.
  * #L%
  */
-import java.awt.Color;
 import java.util.Collection;
 import java8.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -47,6 +46,7 @@ import rst.vision.ColorType;
 import rst.vision.HSBColorType;
 import rst.vision.HSBColorType.HSBColor;
 import rst.vision.RGBColorType;
+import rst.vision.RGBColorType.RGBColor;
 
 /**
  *
@@ -114,17 +114,17 @@ public class ColorStateServiceRemote extends AbstractServiceRemote<ColorStateOpe
                     continue;
                 }
 
-                Color color = HSBColorToRGBColorTransformer.transform(service.getColorState().getColor().getHsbColor());
-                averageRed += color.getRed();
-                averageGreen += color.getGreen();
-                averageBlue += color.getBlue();
+                RGBColor rgbColor = HSBColorToRGBColorTransformer.transform(service.getColorState().getColor().getHsbColor());
+                averageRed += rgbColor.getRed();
+                averageGreen += rgbColor.getGreen();
+                averageBlue += rgbColor.getBlue();
                 timestamp = Math.max(timestamp, service.getColorState().getTimestamp().getTime());
             }
             averageRed = averageRed / amount;
             averageGreen = averageGreen / amount;
             averageBlue = averageBlue / amount;
 
-            HSBColor hsbColor = HSBColorToRGBColorTransformer.transform(new Color((int) averageRed, (int) averageGreen, (int) averageBlue));
+            HSBColor hsbColor = HSBColorToRGBColorTransformer.transform(RGBColor.newBuilder().setRed((int) averageRed).setGreen((int) averageGreen).setBlue((int) averageBlue).build());
             return TimestampProcessor.updateTimestamp(timestamp, ColorState.newBuilder().setColor(ColorType.Color.newBuilder().setType(ColorType.Color.Type.HSB).setHsbColor(hsbColor)), TimeUnit.MICROSECONDS, logger).build();
         } catch (CouldNotTransformException | TypeNotSupportedException ex) {
             throw new NotAvailableException("Could not transform from HSB to RGB or vice-versa!", ex);
