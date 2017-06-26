@@ -10,12 +10,12 @@ package org.openbase.bco.dal.remote.service;
  * it under the terms of the GNU Lesser General Public License as
  * published by the Free Software Foundation, either version 3 of the
  * License, or (at your option) any later version.
- *
+ * 
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Lesser Public License for more details.
- *
+ * 
  * You should have received a copy of the GNU General Lesser Public
  * License along with this program.  If not, see
  * <http://www.gnu.org/licenses/lgpl-3.0.html>.
@@ -28,11 +28,11 @@ import java.util.concurrent.TimeUnit;
 import org.openbase.bco.dal.lib.layer.service.collection.ColorStateOperationServiceCollection;
 import org.openbase.bco.dal.lib.layer.service.operation.ColorStateOperationService;
 import org.openbase.bco.dal.lib.layer.unit.UnitRemote;
-import org.openbase.bco.dal.lib.transform.HSBColorToRGBColorTransformer;
 import org.openbase.jul.exception.CouldNotPerformException;
 import org.openbase.jul.exception.CouldNotTransformException;
 import org.openbase.jul.exception.NotAvailableException;
 import org.openbase.jul.exception.TypeNotSupportedException;
+import org.openbase.jul.extension.rst.transform.HSBColorToRGBColorTransformer;
 import org.openbase.jul.extension.rst.processing.TimestampProcessor;
 import org.openbase.jul.iface.Processable;
 import org.openbase.jul.pattern.Observer;
@@ -107,8 +107,8 @@ public class ColorStateServiceRemote extends AbstractServiceRemote<ColorStateOpe
             double averageBlue = 0;
             int amount = getColorStateOperationServices().size();
             long timestamp = 0;
-            Collection<ColorStateOperationService> colorStateOperationServicCollection = getServices(unitType);
-            for (ColorStateOperationService service : colorStateOperationServicCollection) {
+            Collection<ColorStateOperationService> colorStateOperationServiceCollection = getServices(unitType);
+            for (ColorStateOperationService service : colorStateOperationServiceCollection) {
                 if (!((UnitRemote) service).isDataAvailable()) {
                     amount--;
                     continue;
@@ -197,7 +197,12 @@ public class ColorStateServiceRemote extends AbstractServiceRemote<ColorStateOpe
     }
 
     public java.awt.Color getJavaAWTColor() throws CouldNotPerformException {
-        return HSBColorToRGBColorTransformer.transform(getHSBColor());
+        try {
+            final HSBColor color = getHSBColor();
+            return java.awt.Color.getHSBColor((((float) color.getHue()) / 360f), (((float) color.getSaturation()) / 100f), (((float) color.getBrightness()) / 100f));
+        } catch (Exception ex) {
+            throw new CouldNotTransformException("Could not transform " + HSBColor.class.getName() + " to " + java.awt.Color.class.getName() + "!", ex);
+        }
     }
 
     public Future<Void> setNeutralWhite() throws CouldNotPerformException {
@@ -217,7 +222,13 @@ public class ColorStateServiceRemote extends AbstractServiceRemote<ColorStateOpe
     }
 
     public Future<Void> setColor(final java.awt.Color color) throws CouldNotPerformException {
-        return setColor(HSBColorToRGBColorTransformer.transform(color));
+        try {
+            float[] hsb = new float[3];
+            java.awt.Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
+            return setColor(HSBColorType.HSBColor.newBuilder().setHue(hsb[0] * 360).setSaturation(hsb[1] * 100).setBrightness(hsb[2] * 100).build());
+        } catch (Exception ex) {
+            throw new CouldNotTransformException("Could not transform " + java.awt.Color.class.getName() + " to " + HSBColorType.HSBColor.class.getName() + "!", ex);
+        }
     }
 
     /////////////

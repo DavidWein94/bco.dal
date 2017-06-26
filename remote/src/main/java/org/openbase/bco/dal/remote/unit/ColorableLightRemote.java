@@ -23,8 +23,8 @@ package org.openbase.bco.dal.remote.unit;
  */
 import java.util.concurrent.Future;
 import org.openbase.bco.dal.lib.layer.unit.ColorableLight;
-import org.openbase.bco.dal.lib.transform.HSBColorToRGBColorTransformer;
 import org.openbase.jul.exception.CouldNotPerformException;
+import org.openbase.jul.exception.CouldNotTransformException;
 import org.openbase.jul.exception.NotAvailableException;
 import org.openbase.jul.extension.rsb.com.RPCHelper;
 import rsb.converter.DefaultConverterRepository;
@@ -129,7 +129,12 @@ public class ColorableLightRemote extends AbstractUnitRemote<ColorableLightData>
     }
 
     public java.awt.Color getJavaAWTColor() throws CouldNotPerformException {
-        return HSBColorToRGBColorTransformer.transform(getHSBColor());
+        try {
+            final HSBColorType.HSBColor color = getHSBColor();
+            return java.awt.Color.getHSBColor((((float) color.getHue()) / 360f), (((float) color.getSaturation()) / 100f), (((float) color.getBrightness()) / 100f));
+        } catch (Exception ex) {
+            throw new CouldNotTransformException("Could not transform " + HSBColorType.HSBColor.class.getName() + " to " + java.awt.Color.class.getName() + "!", ex);
+        }
     }
 
     public Future<Void> setColor(final ColorType.Color color) throws CouldNotPerformException {
@@ -145,7 +150,13 @@ public class ColorableLightRemote extends AbstractUnitRemote<ColorableLightData>
     }
 
     public Future<Void> setColor(final java.awt.Color color) throws CouldNotPerformException {
-        return setColor(HSBColorToRGBColorTransformer.transform(color));
+        try {
+            float[] hsb = new float[3];
+            java.awt.Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
+            return setColor(HSBColorType.HSBColor.newBuilder().setHue(hsb[0] * 360).setSaturation(hsb[1] * 100).setBrightness(hsb[2] * 100).build());
+        } catch (Exception ex) {
+            throw new CouldNotTransformException("Could not transform " + java.awt.Color.class.getName() + " to " + HSBColorType.HSBColor.class.getName() + "!", ex);
+        }
     }
 
     // END DEFAULT INTERFACE METHODS

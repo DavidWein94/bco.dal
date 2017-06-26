@@ -6,22 +6,22 @@
     <packaging>jar</packaging>
 
     <name>BCO DAL Library</name>
-    
+
     <parent>
         <groupId>org.openbase.bco</groupId>
         <artifactId>dal</artifactId>
         <version>1.4-SNAPSHOT</version>
-    </parent>    
-    
+    </parent>
+
     <url>https://github.com/openbase/bco.dal/wiki</url>
-    
+
     <licenses>
         <license>
             <name>LGPLv3</name>
             <url>http://www.gnu.org/licenses/lgpl.html</url>
         </license>
     </licenses>
-    
+
     <build>
         <plugins>
             <plugin>
@@ -52,11 +52,11 @@
             </plugin>
         </plugins>
     </build>
-    
+
     <properties>
         <skipTests>false</skipTests>
     </properties>
-    
+
     <dependencies>
         <dependency>
             <groupId>org.openbase.bco</groupId>
@@ -94,6 +94,12 @@
         <dependency>
             <groupId>org.openbase</groupId>
             <artifactId>jul.extension.protobuf</artifactId>
+            <version>${dependency.jul.version}</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>org.openbase</groupId>
+            <artifactId>jul.extension.rst.transform</artifactId>
             <version>${dependency.jul.version}</version>
             <type>jar</type>
         </dependency>

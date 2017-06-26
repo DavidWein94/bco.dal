@@ -38,7 +38,6 @@ import org.openbase.bco.dal.lib.layer.service.operation.StandbyStateOperationSer
 import org.openbase.bco.dal.lib.layer.service.operation.TargetTemperatureStateOperationService;
 import org.openbase.bco.dal.lib.layer.service.provider.ProviderService;
 import org.openbase.bco.dal.lib.layer.unit.Unit;
-import org.openbase.bco.dal.lib.transform.HSBColorToRGBColorTransformer;
 import org.openbase.jul.exception.*;
 import org.openbase.jul.exception.InstantiationException;
 import org.openbase.jul.exception.printer.ExceptionPrinter;
@@ -59,6 +58,7 @@ import rst.domotic.state.StandbyStateType;
 import rst.domotic.state.TemperatureStateType.TemperatureState;
 import rst.vision.ColorType;
 import rst.vision.HSBColorType;
+import rst.vision.HSBColorType.HSBColor;
 import rst.vision.RGBColorType;
 
 /**
@@ -128,7 +128,12 @@ public class ServiceFactoryMock implements ServiceFactory {
             }
 
             public java.awt.Color getJavaAWTColor() throws CouldNotPerformException {
-                return HSBColorToRGBColorTransformer.transform(getHSBColor());
+                try {
+                    final HSBColor color = getHSBColor();
+                    return java.awt.Color.getHSBColor((((float) color.getHue()) / 360f), (((float) color.getSaturation()) / 100f), (((float) color.getBrightness()) / 100f));
+                } catch (Exception ex) {
+                    throw new CouldNotTransformException("Could not transform " + HSBColor.class.getName() + " to " + java.awt.Color.class.getName() + "!", ex);
+                }
             }
 
             public Future<Void> setNeutralWhite() throws CouldNotPerformException {
@@ -148,7 +153,13 @@ public class ServiceFactoryMock implements ServiceFactory {
             }
 
             public Future<Void> setColor(final java.awt.Color color) throws CouldNotPerformException {
-                return setColor(HSBColorToRGBColorTransformer.transform(color));
+                try {
+                    float[] hsb = new float[3];
+                    java.awt.Color.RGBtoHSB(color.getRed(), color.getGreen(), color.getBlue(), hsb);
+                    return setColor(HSBColorType.HSBColor.newBuilder().setHue(hsb[0] * 360).setSaturation(hsb[1] * 100).setBrightness(hsb[2] * 100).build());
+                } catch (Exception ex) {
+                    throw new CouldNotTransformException("Could not transform " + java.awt.Color.class.getName() + " to " + HSBColorType.HSBColor.class.getName() + "!", ex);
+                }
             }
         };
     }
