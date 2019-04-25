@@ -51,10 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 import static org.openbase.bco.dal.lib.layer.service.Service.SERVICE_STATE_PACKAGE;
@@ -743,6 +740,8 @@ public class Services extends ServiceStateProcessor {
         return dataTypes;
     }
 
+
+
     public static List<String> generateServiceStateStringRepresentation(Message serviceState, ServiceType serviceType) throws CouldNotPerformException {
         final List<String> values = new ArrayList<>();
         String timestamp;
@@ -756,6 +755,71 @@ public class Services extends ServiceStateProcessor {
         }
         return values;
     }
+    public static Map<String, String> resolveStateValueToMap(Message serviceState) throws CouldNotPerformException {
+        final Map<String, String> stateValues = new HashMap<>();
+        for (FieldDescriptor fieldDescriptor : serviceState.getDescriptorForType().getFields()) {
+            String stateName = fieldDescriptor.getName();
+            String stateType = fieldDescriptor.getType().toString().toLowerCase();
+
+            // filter invalid states
+            if (stateName == null || stateType == null) {
+                LOGGER.warn("Could not detect datatype of " + stateName);
+            }
+
+            // filter general service fields
+            switch (stateName) {
+                case "last_value_occurrence":
+                case "timestamp":
+                case "responsible_action":
+                case "type":
+                case "rgb_color":
+                case "frame_id":
+                    continue;
+            }
+
+            // filter data units
+            if (stateName.endsWith("data_unit")) {
+                continue;
+            }
+
+            String stateValue = serviceState.getField(fieldDescriptor).toString();
+
+            try {
+                if (fieldDescriptor.getType() == Type.MESSAGE) {
+                    if (fieldDescriptor.isRepeated()) {
+                        List<String> types = new ArrayList<>();
+
+                        for (int i = 0; i < serviceState.getRepeatedFieldCount(fieldDescriptor); i++) {
+                            final Object repeatedFieldEntry = serviceState.getRepeatedField(fieldDescriptor, i);
+                            if (repeatedFieldEntry instanceof Message) {
+                                types.add("[" + resolveStateValue((Message) repeatedFieldEntry).toString() + "]");
+                            }
+                            types.add(repeatedFieldEntry.toString());
+                        }
+                        stateType = types.toString().toLowerCase();
+                    } else {
+                        stateValue = resolveStateValue((Message) serviceState.getField(fieldDescriptor)).toString();
+                    }
+                }
+            } catch (InvalidStateException ex) {
+                LOGGER.warn("Could not process value of " + fieldDescriptor.getName());
+                continue;
+            }
+
+            // filter values
+            switch (stateValue) {
+                case "":
+                case "NaN":
+                    continue;
+                default:
+                    break;
+            }
+
+            stateValues.put(fieldDescriptor.getName() ,stateValue.toLowerCase());
+        }
+        return stateValues;
+    }
+
 
     public static List<String> resolveStateValue(Message serviceState) throws CouldNotPerformException {
         final List<String> stateValues = new ArrayList<>();
